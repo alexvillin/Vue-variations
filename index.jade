@@ -1,0 +1,108 @@
+doctype html
+html
+    head
+        meta(charset='utf-8')
+        meta(http-equiv='X-UA-Compatible', content='IE=edge')
+        meta(name='description', content='')
+        meta(name='viewport', content='width=device-width, initial-scale=1')
+        title vue
+    
+        // <link rel="stylesheet" href="css/style.css">
+        link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css')
+        link(rel='stylesheet', href='//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css')
+        link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.0/css/toastr.min.css')
+        link(rel="stylesheet" href="./css/style.css")
+    body
+        #app-5
+            b-navbar(toggleable="md", type="dark", variant="info")
+                b-navbar-nav
+                    b-nav-item(href="#") Link
+                    b-nav-item(href="#") Link
+            h1 DATA A
+            //v-notification(:text="")
+            table-component(:table-data="tableData", resizable, inline-template, :loading-completed="loadingCompleted")
+                .loading(v-if="!loadingCompleted")
+                //.content(v-else)
+                b-container(v-else, fluid, v-cloak)
+                    h3 Items: {{filteredData.length}} &nbsp; Shown: {{items.length}}
+                    b-row.my-1
+                        b-col(sm="4")
+                            b-form-input(v-model="search", placeholder="Search") 
+                            //input(v-model="setRowsPerPage")
+                        b-col(sm="4")
+                            b-form-select(v-model="loadMode", @change="resetProperties")
+                                option(value="pagination") Pagination
+                                option(value="lazyLoad") Lazyload
+                                option(value="handle") Handle load
+                                option(value="all") No limit
+                        b-col(sm="4")
+                            .btn.btn-default( title="Show only selected items", @click="showOnlyChecked = !showOnlyChecked") Show {{visibleRows.length}} selected rows
+                            b-form-input(v-model="rowsPerPage",type="number", size="sm")
+                    
+                    //b-table(striped, hover, :items="items", :fields="columnNames")
+                        template(slot="id", slot-scope="data")
+                            input(type="checkbox", :name='data.value', :id="data.value")  
+                            .circle_status(:style="{'background-color': markers[data.item.status]}")
+                        template(slot="status", slot-scope="data")
+                            select(:name="data.item.id", v-model="data.item.status")
+                                option(v-for="(status, index) in statuses", :value="index") {{status}}
+                    
+                    |ROws{{visibleRows}}
+                    
+                    table.table.table-striped(:class="{resizable: resizable}")
+                        colgroup
+                            col(v-for="name in columnNames", :name="name", style="width: 100px;")
+                        thead
+                            template(v-for="name in columnNames")
+                                //th(:name="name") {{name}}
+                                th(@mousedown="onMouseDown", @mousemove.stop.prevent="onMouseMove", :name="name") {{name}}
+                        tbody(v-show="!emptyTable")
+                            tr(v-for="item in items", :key="item.id", :class="{selected: selected[item.id]}")
+                                td(v-for="(value, key, index) in item") 
+                                    template(v-if="key == 'id'")
+                                        b-form-checkbox(name='visibleRows', v-model="visibleRows", :value="value", @change="selected[value] = !selected[value]")
+                                        //input(type='checkbox', name='visibleRows', :id='value', v-model="visibleRows", :value="value", @change="selectItem(value)")  
+                                        .circle_status(:style="{'background-color': markers[item.status]}")
+                                    template(v-else-if="key == 'status'")
+                                        b-form-select(v-model="item.status")
+                                            //select(v-model="item.status", class="custom-select")
+                                            option(v-for="(status, index) in statuses", :value="index") {{status}}
+                                    template(v-else) {{value}}    
+                    p(v-show="emptyTable && loadingCompleted") No data found  
+                    
+                    //nav()
+                        ul.pagination
+                            li.page-item(v-for="n in pagesAmount")
+                                a.page-link(href="#", @click="selectPage(n)") {{n}}
+                    
+                    b-pagination(v-show="loadMode == 'pagination'", size="md",  :total-rows="filteredData.length", v-model="page", :per-page="rowsPerPage")
+                    b-button(v-show="loadMode == 'handle'", :disabled="filteredData.length == items.length", variant="info", @click="loadMoreCounter++") Load more
+            
+            //script(type="text/x-template" id="table-component")
+                table.table.table-bordered
+                    thead
+                        template(v-for="header in Object.keys(tableData[0])")
+                            th(@mousedown="setCurrentTarget($event)", @mousemove="resizeColumn($event)") {{header}}
+                    tbody
+                        template(v-for="item in tableData")
+                            tr
+                                td(v-for="(key, value) in item") {{value}}
+
+    //script(src='//cdn.jsdelivr.net/npm/vue')
+    script(src="//cdn.jsdelivr.net/npm/vue@2.5.12/dist/vue.js")
+    script(src="//cdn.jsdelivr.net/npm/vue-resource@1.5.1")
+    script(src="//cdn.jsdelivr.net/npm/lodash@4.17.10/lodash.min.js")
+    script(src="//cdn.jsdelivr.net/npm/axios@0.12.0/dist/axios.min.js")
+    // <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    script(src='//code.jquery.com/jquery-3.2.1.slim.min.js')
+    //script(src='//cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js')
+    //script(src='//maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js')
+    script(src="//unpkg.com/babel-polyfill@latest/dist/polyfill.min.js")
+    script(src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js")
+    
+    script(src='//cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js')
+
+    script(src='//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.0/js/toastr.min.js')
+    script(src='./main.js')
+    //script(src='./omg.js')
+    
