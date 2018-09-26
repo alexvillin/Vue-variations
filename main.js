@@ -63,7 +63,6 @@ Vue.component('table-component', {
     data: function () {
         return {
             search: '',
-            text: 'kjghjkjghjgjhgjhgjh',
             markers: [
                 'green', 'green', 'yellow', 'red',
                 'grey', 'blue', 'orange',
@@ -71,13 +70,13 @@ Vue.component('table-component', {
             ],
             page: 1,
             loadMoreCounter: 1,
+            rowsPerPage: 3,
             loadMode: 'all',
             //tableWidth: 'auto',
-            //currentTarget: {},
+            currentTarget: {},
             startPosition: 0,
             //options: options,
-            selected: {},
-            showOnlyChecked: false,
+            showOnlySelected: false,
             statuses: [
                 'не становить интерес',
                 'малой ценности',
@@ -85,21 +84,22 @@ Vue.component('table-component', {
                 'ценное',
                 'эксклюзив',
             ],
-            visibleRows: [],
-            rowsPerPage: 3,
+            selectedRows: [],
+            columnSize: {},
 
         }
     },
     created: function () {
         window.addEventListener('scroll', this.checkLoadTable);
-
-
     },
     mounted: function () {
 
     },
     updated: function () {
         this.$nextTick(function () {
+            if (this.loadMode == 'lazyLoad') {
+                this.checkLoadTable();
+            }
             // Code that will run only after the
             // entire view has been re-rendered
 
@@ -109,90 +109,72 @@ Vue.component('table-component', {
     destroyed: function () {
         window.removeEventListener('scroll', this.checkLoadTable);
     },
-//    watch: {
-//        visibleRows: function (val) {
-//            this.items = {};
-//            var vm = this;
-//            vm.selected = {}
-//            //            this.selected = !this.selected;
-//            val.forEach(function (item) {
-//                vm.selected[item] = true;
-//
-//            });
-//            console.log(this.selected);
-//        }
-//    },
-    //    filters: {
-    //         searchFilter: function () {
-    //            return this.tableData.filter(function (i) {
-    //                return i.status.indexOf(this.search) !== -1;
-    //            })
-    //        },
-    //        
-    //    },
+
     computed: {
+        //pagination
         items: function () {
-            if (this.showOnlyChecked) {
-                console.log(123);
-                return this.selectedData();
+            var vm = this;
+            if (vm.loadMode == 'all') {
+                return vm.filteredData;
             }
-            if (this.loadMode == 'all') {
-                return this.filteredData;
+            if (vm.loadMode == 'pagination') {
+                var from = vm.rowsPerPage * (vm.page - 1),
+                    to = from + vm.rowsPerPage;
+                return vm.filteredData.slice(from, to);
             }
-            if (this.loadMode == 'pagination') {
-                var from = this.rowsPerPage * (this.page - 1),
-                    to = from + this.rowsPerPage;
-                return this.filteredData.slice(from, to);
-            }
-
-
-            return this.filteredData.slice(0, this.rowsPerPage * this.loadMoreCounter);
+            return vm.filteredData.slice(0, vm.rowsPerPage * vm.loadMoreCounter);
         },
-
-        emptyTable: function () {
-            return _.isEmpty(this.filteredData) || _.isEmpty(this.tableData);
+        totalPages: function () {
+            return Math.ceil(this.filteredData.length / this.rowsPerPage);
         },
-
+        //selected helper
+        selected: function(){
+            var selected = [];
+            this.selectedRows.forEach(function (id) {
+                selected[id] = true;
+            })
+            return selected;
+        },
+        //for search and select filters
         filteredData: function () {
             var vm = this;
-            return vm.tableData.filter(function (row) {
-                return _.values(row).join().indexOf(vm.search) !== -1;
-            })
-
+            //create new array for dont touch reactive variable
+            var items = vm.tableData.slice();
+            if (vm.search) {
+                items = items.filter(function (row) {
+                    return _.values(row).join().indexOf(vm.search) !== -1;
+                })
+            }
+            if (vm.showOnlySelected) {
+                items = items.filter(function (item) {
+                    return vm.selectedRows.indexOf(item.id) !== -1;
+                })
+            }
+            return items;
         },
-        
-        //                rowsPerPage: function () {
-        //                    return this.rowsInput; 
-        //                },
         columnNames: function () {
             var fields = _.keys(this.tableData[0]);
             //fields[0] = {key: 'id', sortable: true}
             return this.tableColumns || fields;
         },
-//        columnWidth: {
-//            get: function () {
-//                var obj = {};
-//                _.keys(this.tableData[0]).forEach(function (value) {
-//                    obj[value] = '';
-//                })
-//                console.log(obj);
-//                return obj;
-//            },
-//            set: function (name) {
-//
-//
-//            },
-//        },
+        //        columnWidth: {
+        //            get: function () {
+        //                var obj = {};
+        //                _.keys(this.tableData[0]).forEach(function (value) {
+        //                    obj[value] = '';
+        //                })
+        //                console.log(obj);
+        //                return obj;
+        //            },
+        //            set: function (name) {
+        //
+        //
+        //            },
+        //        },
 
     },
-
     methods: {
-        filterSelected: function () {
-            var vm = this;
-            this.items = this.items.filter(function (val) {
-                return vm.visibleRows.indexOf(val.id) !== -1;
-            })
-        },
+  
         resetProperties: function () {
             this.page = 1;
             this.loadMoreCounter = 1;
@@ -207,8 +189,12 @@ Vue.component('table-component', {
                 var newWidth = e.pageX - this.currentTarget.offsetLeft;
                 if (newWidth > 20) {
                     $('col[name="' + this.targetName + '"]').css('width', newWidth + 'px')
+                    this.columnSize[this.targetName] = newWidth;
                 }
             }
+        },
+        onMouseUp: function(){
+            this.currentTarget = {}
         },
 
         checkLoadTable: function () {
@@ -224,17 +210,9 @@ Vue.component('table-component', {
             if (clientWindowHeight + pageOffset > tableOffset) {
                 console.log(clientWindowHeight + pageOffset, tableOffset);
                 this.loadMoreCounter++;
-                this.checkLoadTable();
             }
         },
-        selectedData: function(){
-            var vm = this;
-            return this.tableData.filter(function(row){
-                return vm.visibleRows.indexOf(row.id) !== -1; 
-            })
-            
-        },
-
+        
     },
 });
 
@@ -265,8 +243,6 @@ var app5 = new Vue({
                 console.log('Ошибка! Не могу связаться с API. ' + error);
             })
 
-        //        $(document).on('scroll', this.checkLoadTable);
-
     },
     methods: {
         //create model instance
@@ -283,17 +259,9 @@ var app5 = new Vue({
 
     },
 
-
 })
-/*
-Vue.set(app5.obj, 'age', 27);
-app5.obj = Object.assign({}, app5.obj, {
-    age: 29,
-    favoriteColor: 'Vue Green'
-})
-*/
 
-// vprop
+
 /*
         
 camelCase: {
