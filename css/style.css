@@ -18,7 +18,11 @@ body {
     /*  background-color: #1b232b;*/
     // background-image: url(../img/back.png);
 }
-
+.well{
+    padding:20px;
+    margin: 10px;
+    background-color: lightslategrey;
+}
 table {
     /*    width:100%;*/
     padding: 0 20px;

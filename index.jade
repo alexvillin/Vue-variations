@@ -12,7 +12,7 @@ html
         link(rel='stylesheet', href='//cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.0/css/toastr.min.css')
         link(rel="stylesheet" href="./css/style.css")
     body
-        #app-5
+        #app
             b-navbar(toggleable="md", type="dark", variant="info")
                 b-navbar-nav
                     b-nav-item(href="#") Link
@@ -23,8 +23,8 @@ html
                 .loading(v-if="!loadingCompleted")
                 //.content(v-else)
                 b-container(v-else, fluid, v-cloak, @mouseup="onMouseUp")
-                    h3 Items: {{filteredData.length}} &nbsp; Shown: {{items.length}} &nbsp; Pages {{totalPages}}
-                    b-row.my-1
+                    h3 Items: {{filteredData.length}} &nbsp; Shown: {{items.length}}
+                    b-row
                         b-col(sm="3")
                             b-form-input(v-model="search", placeholder="Search") 
                         b-col(sm="3")
@@ -36,7 +36,9 @@ html
                         b-col(sm="3", v-if="selectedRows.length")
                             b-button(v-if="showOnlySelected", title="Show all", @click="showOnlySelected = !showOnlySelected") Show all data
                             b-button(v-else, title="Show only selected items", @click="showOnlySelected = !showOnlySelected") Show {{selectedRows.length}} selected rows
-                        b-col(sm="3")    
+                    b-row.well(v-if="loadMode == 'pagination'") 
+                        b-col(sm="3") Pages: {{totalPages}}
+                        b-col(sm="3")
                             b-form-input(v-model="rowsPerPage",type="number", size="sm")
                     
                     //b-table(striped, hover, :items="items", :fields="columnNames")
@@ -49,10 +51,9 @@ html
 
                     table.table.table-striped(:class="{resizable: resizable}")
                         colgroup
-                            col(v-for="name in columnNames", :name="name", style="width: 100px;")
+                            col(v-for="name in columnNames", :name="name", :style="{width: columnSizes[name] + 'px'}")
                         thead
                             template(v-for="name in columnNames")
-                                //th(:name="name") {{name}}
                                 th(@mousedown.stop="onMouseDown", @mousemove.stop.prevent="onMouseMove", :name="name") {{name}}
                         tbody(v-show="items.length")
                             tr(v-for="item in items", :class="{selected: selected[item.id]}")

@@ -4,6 +4,25 @@ Vue.filter('searchFilter', function (value) {
     //            })
 })
 
+var dimentions = {
+    get: function () {
+        return new Promise(function (resolve, reject) {
+            if (typeof (Storage) !== "undefined") {
+                resolve(JSON.parse(localStorage.getItem('dimentions') || "{}"));
+            } else {
+                reject(new Error('Sorry! No Web Storage support..'));
+            }
+        })
+
+    },
+    set: function (dimentions) {
+        //app.$toastr.success('Favourites changed');
+        localStorage.setItem('dimentions', JSON.stringify(dimentions));
+        return dimentions;
+
+    },
+}
+
 var options = [
     {
         value: '0',
@@ -28,69 +47,45 @@ var options = [
             ];
 
 Vue.component('table-component', {
-    //inheritAttrs: false,
-    //['label', 'value'],
+
     props: {
         resizable: {
             type: Boolean,
             default: false
         },
-        tableData: [Array],
-        //search: String
+        tableData: {
+            type: Array,
+            required: true
+        },
         tableColumns: [Array],
-        //        rowsPerPage: {
-        //            type: Number,
-        //            default: 3,
-        //            validator: function (v) {
-        //                return v > 0;
-        //            }
-        //        },
         loadingCompleted: {
             type: Boolean,
             default: false,
         },
         pagination: Boolean,
-        //        loadMode: {
-        //            type: String,
-        //            default: 'handle',
-        //            validator: function (value) {
-        //                // The value must match one of these strings
-        //                return ['lazyLoad', 'handle'].indexOf(value) !== -1
-        //            }
-        //        },
 
     },
     data: function () {
         return {
             search: '',
-            markers: [
-                'green', 'green', 'yellow', 'red',
-                'grey', 'blue', 'orange',
-                'black', 'darkred', 'lightgrey',
-            ],
             page: 1,
             loadMoreCounter: 1,
             rowsPerPage: 3,
             loadMode: 'all',
-            //tableWidth: 'auto',
             currentTarget: {},
-            startPosition: 0,
-            //options: options,
             showOnlySelected: false,
-            statuses: [
-                'не становить интерес',
-                'малой ценности',
-                'составляет интерс',
-                'ценное',
-                'эксклюзив',
-            ],
             selectedRows: [],
-            columnSize: {},
-
+            markers: shared.markers,
+            statuses: shared.statuses,
         }
     },
     created: function () {
-        window.addEventListener('scroll', this.checkLoadTable);
+        var vm = this;
+        window.addEventListener('scroll', vm.checkLoadTable);
+
+        dimentions.get().then(function (response) {
+            shared.dimentions = response;
+        })
     },
     mounted: function () {
 
@@ -128,7 +123,7 @@ Vue.component('table-component', {
             return Math.ceil(this.filteredData.length / this.rowsPerPage);
         },
         //selected helper
-        selected: function(){
+        selected: function () {
             var selected = [];
             this.selectedRows.forEach(function (id) {
                 selected[id] = true;
@@ -153,9 +148,17 @@ Vue.component('table-component', {
             return items;
         },
         columnNames: function () {
-            var fields = _.keys(this.tableData[0]);
-            //fields[0] = {key: 'id', sortable: true}
+            var vm = this;
+            var fields = _.keys(vm.tableData[0]);
             return this.tableColumns || fields;
+        },
+        columnSizes: function () {
+            this.columnNames.forEach(function (val) {
+                if (!shared.dimentions[val]) {
+                    shared.dimentions[val] = 100;
+                }
+            })
+            return shared.dimentions;
         },
         //        columnWidth: {
         //            get: function () {
@@ -174,7 +177,6 @@ Vue.component('table-component', {
 
     },
     methods: {
-  
         resetProperties: function () {
             this.page = 1;
             this.loadMoreCounter = 1;
@@ -189,12 +191,17 @@ Vue.component('table-component', {
                 var newWidth = e.pageX - this.currentTarget.offsetLeft;
                 if (newWidth > 20) {
                     $('col[name="' + this.targetName + '"]').css('width', newWidth + 'px')
-                    this.columnSize[this.targetName] = newWidth;
+                    //_.debounce(function(){
+                    //    console.log(123);
+                    shared.dimentions[this.targetName] = newWidth;
+
+                    //}, 1000)
                 }
             }
         },
-        onMouseUp: function(){
+        onMouseUp: function () {
             this.currentTarget = {}
+            dimentions.set(shared.dimentions);
         },
 
         checkLoadTable: function () {
@@ -212,17 +219,31 @@ Vue.component('table-component', {
                 this.loadMoreCounter++;
             }
         },
-        
     },
 });
 
+var shared = {
+    dimentions: {},
+    markers: [
+                'green', 'green', 'yellow', 'red',
+                'grey', 'blue', 'orange',
+                'black', 'darkred', 'lightgrey',
+            ],
+    statuses: [
+                'не становить интерес',
+                'малой ценности',
+                'составляет интерс',
+                'ценное',
+                'эксклюзив',
+            ],
+}
 
 function formatDate(dateString) {
     return moment(dateString).format("DD.MM.YYYY hh:mm:ss");
 }
 
-var app5 = new Vue({
-    el: '#app-5',
+var app = new Vue({
+    el: '#app',
     data: {
         headersTable: [""],
         tableData: [],
@@ -234,7 +255,6 @@ var app5 = new Vue({
 
         axios.get('dataA.json')
             .then(function (response) {
-                console.log(response);
                 vm.tableData = response.data;
                 vm.prepareData();
                 vm.loadingCompleted = true;

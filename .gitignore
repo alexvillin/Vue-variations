@@ -1,4 +1,7 @@
 node_modules
-__*git .*
+trash
+__*.*
 __*
-img
+*.html
+/package-lock.json
+!index.html

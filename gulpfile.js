@@ -1,40 +1,53 @@
 //From http://stackoverflow.com/questions/25384796/can-i-set-gulp-livereload-to-run-after-all-files-are-compiled
 
+var express = require('express');
 var gulp = require('gulp');
 
 var jade = require('gulp-jade');
-//var gutil = require('gulp-util');
-//var stylus = require('gulp-stylus');
-//var jeet = require('jeet');
-//var nib = require('nib');
-//var uglify = require('gulp-uglify');
-var livereload = require('gulp-livereload');
 var sass = require('gulp-sass');
+var babel = require('gulp-babel');
+var concat = require('gulp-concat');
+
+//var gutil = require('gulp-util');
+var uglify = require('gulp-uglify');
+var connect = require('connect-livereload');
+var livereload = require('gulp-livereload');
 var sourcemaps = require('gulp-sourcemaps');
 
 var sources = {
     jade: "./*.jade",
-    sass: "./scss/*.scss",
-    //    partials: "partials/**/*.jade",
-    //    stylus: "styl/**/*.styl",
-    //    scripts: "js/**/*.js"
+//    sass: "./scss/*.scss",
+    js: "./*.js"
 };
 
 // Define destinations object
-var destinations = {
-    //  html: "dist/",
+var dest = {
     html: "./",
-    css: "./css/",
-  //  js: "dist/js"
+//    css: "./css/",
+    js: "./js/"
 };
+var host = '127.0.0.1';
+var port = '5500';
 
+// Minify and copy all JavaScript
+gulp.task('scripts', function(){
+    return gulp.src(['./js/imports.js', './js/!(main|imports)*.js', './js/main.js'])
+        .pipe(sourcemaps.init())
+        .pipe(babel({
+            presets: ['@babel/env']
+        }))
+        .pipe(concat('app.js'))
+        .pipe(uglify())    
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest(dest.js))
+});
 // Compile and copy Jade
 gulp.task("jade", function (event) {
     return gulp.src(sources.jade)
         .pipe(jade({
             pretty: true
         }))
-        .pipe(gulp.dest(destinations.html))
+        .pipe(gulp.dest(dest.html))
 });
 
 gulp.task('sass-sources', function () {
@@ -42,57 +55,43 @@ gulp.task('sass-sources', function () {
         .pipe(sourcemaps.init())
         .pipe(sass().on('error', sass.logError))
         .pipe(sourcemaps.write('./maps'))
-        .pipe(gulp.dest('./css'));
+        .pipe(gulp.dest(dest.css));
 });
-//// Compile and copy Stylus
-//gulp.task("stylus", function (event) {
-//    return gulp.src(sources.stylus).pipe(stylus({
-//        use: [nib(), jeet()],
-//        import: [
-//      'nib',
-//      'jeet'
-//    ],
-//        style: "compressed"
-//    })).pipe(gulp.dest(destinations.css));
-//});
 gulp.task('sass', function (event) {
     return gulp.src(sources.sass)
         .pipe(sass({
-            //outputStyle: 'compressed'
-        }).on('error', sass.logError))
-        .pipe(gulp.dest(destinations.css))
+                //outputStyle: 'compressed'
+            })
+            .on('error', sass.logError))
+        .pipe(gulp.dest(dest.css))
 });
-// Minify and copy all JavaScript
-//gulp.task('scripts', function () {
-//    gulp.src(sources.scripts)
-//        .pipe(uglify())
-//        .pipe(gulp.dest(destinations.js));
-//});
 
 // Server
 gulp.task('server', function () {
-    var express = require('express');
-    var app = express();
-    app.use(require('connect-livereload')());
-    app.use(express.static(__dirname));
-    app.listen(4000, '127.0.0.1');
+    var server = express();
+    server.use(connect({
+        port: port
+    }));
+    server.use(express.static(__dirname));
+    server.listen(port, host);
 });
 
 // Watch sources for change, executa tasks
 gulp.task('watch', function () {
-    livereload.listen();
-    gulp.watch(sources.jade, ["jade", "sass", "refresh"]);
-    //    gulp.watch(sources.partials, ["jade", "refresh"]);
-    //    gulp.watch(sources.stylus, ["stylus", "refresh"]);
-    //    gulp.watch(sources.scripts, ["scripts", "refresh"]);
+
+    gulp.watch(sources.jade, ["jade", "refresh"]);
+//    gulp.watch(sources.sass, ["sass", "refresh"]);
+//    gulp.watch(sources.js, ["scripts", "refresh"]);
+
 });
 
-// Refresh task. Depends on Jade task completion
-gulp.task("refresh", ["jade"], function () {
-    livereload.changed();
-    console.log(livereload)
-    console.log('LiveReload is triggered');
+gulp.task("refresh", function () {
+//    livereload.listen({
+//        port: port,
+//        host: host
+//    });
+//    console.log('LiveReload is triggered');
 });
 
 // Define default task
-gulp.task("default", ["jade", /* "stylus", "scripts", */ "server", "sass", "watch"]);
+gulp.task("default", ["server", "jade", /*"sass", "scripts", */"watch"]);
