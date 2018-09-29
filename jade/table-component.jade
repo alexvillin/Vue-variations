@@ -1,0 +1,50 @@
+table-component(:table-data="tableData", resizable, inline-template, :loading-completed="loadingCompleted", v-cloak)
+            .loading(v-if="!loadingCompleted")
+            b-container(v-else, fluid, @mouseup="onMouseUp")
+                //b-breadcrumb
+                     b-breadcrumb-item Data A 
+                .btn Items &nbsp;
+                    span.badge.badge-light {{filteredData.length}}
+                .btn Shown &nbsp;
+                    span.badge.badge-light {{items.length}}
+                .btn(v-show="loadMode !== 'all'") Pages &nbsp; 
+                    span.badge.badge-light {{totalPages}}    
+                b-row
+                    b-col(sm="3")
+                        b-form-input(v-model="search", placeholder="Search") 
+                    b-col(sm="3")
+                        b-form-select(v-model="loadMode", @change="resetProperties")
+                            option(value="pagination") Pagination
+                            option(value="lazyLoad") Lazyload
+                            option(value="handle") Handle load
+                            option(value="all") No limit
+                    b-col(sm="3", v-if="selectedRows.length")
+                        b-button(v-if="showOnlySelected", title="Show all", @click="showOnlySelected = !showOnlySelected") 
+                            | Show all data
+                        b-button(v-else, title="Show only selected items", @click="showOnlySelected = !showOnlySelected") 
+                            | Show {{selectedRows.length}} selected rows
+                    b-col(sm="3", v-show="loadMode !== 'all'") Rows per page
+                        b-form-input(v-model="rowsPerPage",type="number", size="sm")
+
+                table.table.table-striped(:class="{resizable: resizable}")
+                    colgroup
+                        col(v-for="name in columnNames", :name="name", :style="{width: columnSizes[name] + 'px'}")
+                    thead
+                        template(v-for="name in columnNames")
+                            th(@mousedown.stop="onMouseDown", @mousemove.stop.prevent="onMouseMove", :name="name") {{name}}
+                    tbody(v-show="items.length")
+                        tr(v-for="item in items", :class="{selected: selected[item.id]}", :key="'tr'+item.id")
+                            td(v-for="(value, key, index) in item") 
+                                template(v-if="key == 'id'")
+                                    input(type='checkbox', name='selectedRows', v-model="selectedRows", :value="value")  
+                                    .circle_status(:style="{'background-color': markers[item.status]}")
+                                template(v-else-if="key == 'status'")
+                                    select(v-model="item.status", class="custom-select")
+                                        option(v-for="(status, index) in statuses", :value="index") {{status}}
+                                template(v-else) {{value}}    
+                p(v-show="!items.length && loadingCompleted") No data found  
+                
+                                    
+                b-pagination(v-show="loadMode == 'pagination' && totalPages > 1", size="md",  :total-rows="filteredData.length", v-model="page", :per-page="rowsPerPage")
+                b-button(v-show="loadMode == 'handle'", variant="info", @click="loadMoreCounter++",
+                    :disabled="filteredData.length == items.length") Load more

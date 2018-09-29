@@ -1,0 +1,33 @@
+script(type="text/x-template" id="table-vue-component")
+        .loading(v-if="!loadingCompleted")
+        
+        b-container(v-else, fluid, v-cloak, @mouseup="onMouseUp")
+            h3 Items: {{filteredData.length}} &nbsp; Shown: {{items.length}}
+            b-row
+                b-col(sm="3")
+                    b-form-input(v-model="search", placeholder="Search") 
+                b-col(sm="3")
+                    b-form-select(v-model="loadMode", @change="resetProperties")
+                        option(value="pagination") Pagination
+                        option(value="lazyLoad") Lazyload
+                        option(value="handle") Handle load
+                        option(value="all") No limit
+                b-col(sm="3", v-if="selectedRows.length")
+                    b-button(v-if="showOnlySelected", title="Show all", @click="showOnlySelected = !showOnlySelected") Show all data
+                    b-button(v-else, title="Show only selected items", @click="showOnlySelected = !showOnlySelected") Show {{selectedRows.length}} selected rows
+            b-row.well(v-if="loadMode == 'pagination'") 
+                b-col(sm="3") Pages: {{totalPages}}
+                b-col(sm="3")
+                    b-form-input(v-model="rowsPerPage",type="number", size="sm")
+            
+            b-table(striped, hover, :items="items", :fields="columnNames")
+                template(slot="id", slot-scope="data")
+                    b-form-checkbox(name='selectedRows', v-model="selectedRows", :value="value")
+                    .circle_status(:style="{'background-color': markers[data.item.status]}")
+                template(slot="status", slot-scope="data")
+                    b-form-select(v-model="item.status")
+                        option(v-for="(status, index) in statuses", :value="index") {{status}}
+
+            b-pagination(v-show="loadMode == 'pagination' && totalPages > 1", size="md",  :total-rows="filteredData.length", v-model="page", :per-page="rowsPerPage")
+            b-button(v-show="loadMode == 'handle'", variant="info", @click="loadMoreCounter++",
+                        :disabled="filteredData.length == items.length") Load more
