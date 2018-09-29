@@ -15,9 +15,9 @@ var livereload = require('gulp-livereload');
 var sourcemaps = require('gulp-sourcemaps');
 
 var sources = {
-    jade: "./*.jade",
+    jade: "./jade/*.jade",
 //    sass: "./scss/*.scss",
-    js: "./*.js"
+    js: "./js/*.js"
 };
 
 // Define destinations object
@@ -81,7 +81,7 @@ gulp.task('watch', function () {
 
     gulp.watch(sources.jade, ["jade", "refresh"]);
 //    gulp.watch(sources.sass, ["sass", "refresh"]);
-//    gulp.watch(sources.js, ["scripts", "refresh"]);
+    gulp.watch(sources.js, ["scripts", "refresh"]);
 
 });
 
